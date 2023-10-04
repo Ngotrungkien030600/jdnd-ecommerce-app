@@ -13,35 +13,39 @@ import java.util.stream.Collectors;
 @RequestMapping("/pets")
 public class PetController {
 
+    private final PetsService petsService;
+
     @Autowired
-    private PetsService petsService;
+    public PetController(PetsService petsService) {
+        this.petsService = petsService;
+    }
 
     @PostMapping
     public PetDTO savePet(@RequestBody PetDTO petDTO) {
-        Pet pet = convertPetDTOToEntity(petDTO);
-        Pet savedPet = petsService.savePet(pet, petDTO.getOwnerId());
-        return convertPetToDTO(savedPet);
+        Pet petToSave = mapPetDTOToEntity(petDTO);
+        Pet savedPet = petsService.savePet(petToSave, petDTO.getOwnerId());
+        return mapEntityToPetDTO(savedPet);
     }
 
     @GetMapping("/{petId}")
     public PetDTO getPet(@PathVariable long petId) {
         Pet pet = petsService.getPetById(petId);
-        return convertPetToDTO(pet);
+        return mapEntityToPetDTO(pet);
     }
 
     @GetMapping
     public List<PetDTO> getAllPets() {
         List<Pet> pets = petsService.getAllPets();
-        return pets.stream().map(this::convertPetToDTO).collect(Collectors.toList());
+        return pets.stream().map(this::mapEntityToPetDTO).collect(Collectors.toList());
     }
 
     @GetMapping("/owner/{ownerId}")
     public List<PetDTO> getPetsByOwner(@PathVariable long ownerId) {
         List<Pet> pets = petsService.getPetsByCustomerId(ownerId);
-        return pets.stream().map(this::convertPetToDTO).collect(Collectors.toList());
+        return pets.stream().map(this::mapEntityToPetDTO).collect(Collectors.toList());
     }
 
-    private PetDTO convertPetToDTO(Pet pet) {
+    private PetDTO mapEntityToPetDTO(Pet pet) {
         PetDTO petDTO = new PetDTO();
         petDTO.setId(pet.getId());
         petDTO.setName(pet.getName());
@@ -52,7 +56,7 @@ public class PetController {
         return petDTO;
     }
 
-    private Pet convertPetDTOToEntity(PetDTO petDTO) {
+    private Pet mapPetDTOToEntity(PetDTO petDTO) {
         Pet pet = new Pet();
         pet.setType(petDTO.getType());
         pet.setName(petDTO.getName());
