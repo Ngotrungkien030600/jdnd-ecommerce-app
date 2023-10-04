@@ -1,5 +1,7 @@
 package com.udacity.critter.entities;
 
+import com.udacity.critter.entities.Employee;
+import com.udacity.critter.entities.Pet;
 import com.udacity.critter.user.EmployeeSkill;
 import lombok.Data;
 import lombok.NoArgsConstructor;

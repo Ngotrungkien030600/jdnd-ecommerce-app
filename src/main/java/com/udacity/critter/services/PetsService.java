@@ -12,30 +12,39 @@ import java.util.List;
 @Service
 public class PetsService {
 
-    @Autowired
-    private PetsRepository petsRepository;
+    private final PetsRepository petsRepository;
+    private final CustomersRepository customersRepository;
 
     @Autowired
-    private CustomersRepository customersRepository;
+    public PetsService(PetsRepository petsRepository, CustomersRepository customersRepository) {
+        this.petsRepository = petsRepository;
+        this.customersRepository = customersRepository;
+    }
 
     public List<Pet> getAllPets() {
         return petsRepository.findAll();
     }
 
     public List<Pet> getPetsByCustomerId(long customerId) {
-        return petsRepository.getAllByCustomerId(customerId);
+        return petsRepository.findAllByCustomer_Id(customerId);
     }
 
     public Pet getPetById(long petId) {
-        return petsRepository.getOne(petId);
+        return petsRepository.findById(petId).orElse(null);
     }
 
     public Pet savePet(Pet pet, long ownerId) {
-        Customer customer = customersRepository.getOne(ownerId);
-        pet.setCustomer(customer);
-        pet = petsRepository.save(pet);
-        customer.insertPet(pet);
-        customersRepository.save(customer);
+        Customer customer = customersRepository.findById(ownerId).orElse(null);
+        if (customer != null) {
+            pet.setCustomer(customer);
+            pet = petsRepository.save(pet);
+            customer.insertPet(pet);
+            customersRepository.save(customer);
+        }
         return pet;
+    }
+
+    public List<Pet> getPetsByIds(List<Long> petIds) {
+        return null;
     }
 }

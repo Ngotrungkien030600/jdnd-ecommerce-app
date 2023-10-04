@@ -9,4 +9,5 @@ public interface PetsRepository extends JpaRepository<Pet, Long> {
 
     List<Pet> getAllByCustomerId(Long customerId);
 
+    List<Pet> findAllByCustomer_Id(long customerId);
 }

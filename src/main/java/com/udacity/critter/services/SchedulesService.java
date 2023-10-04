@@ -16,17 +16,21 @@ import java.util.List;
 @Service
 public class SchedulesService {
 
-    @Autowired
-    private SchedulesRepository schedulesRepository;
+    private final SchedulesRepository schedulesRepository;
+    private final PetsRepository petsRepository;
+    private final EmployeesRepository employeesRepository;
+    private final CustomersRepository customersRepository;
 
     @Autowired
-    private PetsRepository petsRepository;
-
-    @Autowired
-    private EmployeesRepository employeesRepository;
-
-    @Autowired
-    private CustomersRepository customersRepository;
+    public SchedulesService(SchedulesRepository schedulesRepository,
+                            PetsRepository petsRepository,
+                            EmployeesRepository employeesRepository,
+                            CustomersRepository customersRepository) {
+        this.schedulesRepository = schedulesRepository;
+        this.petsRepository = petsRepository;
+        this.employeesRepository = employeesRepository;
+        this.customersRepository = customersRepository;
+    }
 
     public List<Schedule> getAllSchedules() {
         return schedulesRepository.findAll();
@@ -44,7 +48,7 @@ public class SchedulesService {
 
     public List<Schedule> getAllSchedulesForCustomer(long customerId) {
         Customer customer = customersRepository.getOne(customerId);
-        return  schedulesRepository.getAllByPetsIn(customer.getPets());
+        return schedulesRepository.getAllByPetsIn(customer.getPets());
     }
 
     public Schedule saveSchedule(Schedule schedule, List<Long> employeeIds, List<Long> petIds) {

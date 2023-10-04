@@ -6,6 +6,7 @@ import com.udacity.critter.user.EmployeeSkill;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.EntityNotFoundException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
@@ -15,19 +16,23 @@ import java.util.stream.Collectors;
 @Service
 public class EmployeesService {
 
+    private final EmployeesRepository employeesRepository;
+
     @Autowired
-    private EmployeesRepository employeesRepository;
+    public EmployeesService(EmployeesRepository employeesRepository) {
+        this.employeesRepository = employeesRepository;
+    }
 
     public Employee getEmployeeById(long employeeId) {
-        return employeesRepository.getOne(employeeId);
+        return employeesRepository.findById(employeeId)
+                .orElseThrow(() -> new EntityNotFoundException("Employee with ID " + employeeId + " not found."));
     }
 
     public List<Employee> getEmployeesForService(LocalDate date, Set<EmployeeSkill> skills) {
-        List<Employee> employees = employeesRepository
-                .getAllByDaysAvailableContains(date.getDayOfWeek()).stream()
-                .filter(employee -> employee.getSkills().containsAll(skills))
-                .collect(Collectors.toList());
-        return employees;
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        List<Employee> availableEmployees = employeesRepository
+                .findByDaysAvailableContainingAndSkillsIn(dayOfWeek, skills);
+        return availableEmployees;
     }
 
     public Employee saveEmployee(Employee employee) {
@@ -35,8 +40,12 @@ public class EmployeesService {
     }
 
     public void setEmployeeAvailability(Set<DayOfWeek> daysAvailable, long employeeId) {
-        Employee employee = employeesRepository.getOne(employeeId);
+        Employee employee = getEmployeeById(employeeId);
         employee.setDaysAvailable(daysAvailable);
         employeesRepository.save(employee);
+    }
+
+    public List<Employee> getEmployeesByIds(List<Long> employeeIds) {
+        return null;
     }
 }

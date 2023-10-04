@@ -7,33 +7,47 @@ import com.udacity.critter.repositories.PetsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import javax.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class CustomersService {
 
-    @Autowired
-    private CustomersRepository customersRepository;
+    private final CustomersRepository customersRepository;
+    private final PetsRepository petsRepository;
 
     @Autowired
-    private PetsRepository petsRepository;
+    public CustomersService(CustomersRepository customersRepository, PetsRepository petsRepository) {
+        this.customersRepository = customersRepository;
+        this.petsRepository = petsRepository;
+    }
 
     public List<Customer> getAllCustomers() {
         return customersRepository.findAll();
     }
 
     public Customer getCustomerByPetId(long petId) {
-        return petsRepository.getOne(petId).getCustomer();
+        Optional<Pet> petOptional = petsRepository.findById(petId);
+        if (petOptional.isPresent()) {
+            return petOptional.get().getCustomer();
+        } else {
+            throw new EntityNotFoundException("Pet with ID " + petId + " not found.");
+        }
     }
 
     public Customer saveCustomer(Customer customer, List<Long> petIds) {
-        List<Pet> pets = new ArrayList<>();
-        if (petIds != null && !petIds.isEmpty()) {
-            pets = petIds.stream().map((petId) -> petsRepository.getOne(petId)).collect(Collectors.toList());
-        }
+        List<Pet> pets = petIds.stream()
+                .map(petId -> petsRepository.findById(petId)
+                        .orElseThrow(() -> new EntityNotFoundException("Pet with ID " + petId + " not found.")))
+                .collect(Collectors.toList());
+
         customer.setPets(pets);
         return customersRepository.save(customer);
+    }
+
+    public Customer getCustomerById(long customerId) {
+        return null;
     }
 }
