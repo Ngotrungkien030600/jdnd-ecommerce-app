@@ -1,80 +1,90 @@
-# Critter Chronologer Project Starter
+# eCommerce Application
 
-Critter Chronologer a Software as a Service application that provides a scheduling interface for a small business that takes care of animals. This Spring Boot project will allow users to create pets, owners, and employees, and then schedule events for employees to provide services for pets.
+In this project, I had the opportunity to demonstrate the security and DevOps skills that I learned in this lesson by completing an eCommerce application. I started with a template for the complete application, and my goal was to take this template and add proper authentication and authorization controls so users can only access their data, and that data can only be accessed in a secure way. 
+
+## Project Template
+First, I got set up with the template. The template was written in Java using Spring Boot, Hibernate ORM, and the H2 database. H2 is an in memory database, so if I needed to retry something, every application startup was a fresh copy.
+
+In the project, you will see 5 packages:
+
+* demo - this package contains the main method which runs the application
+
+* model.persistence - this package contains the data models that Hibernate persists to H2. There are 4 models: Cart, for holding a User's items; Item , for defining new items; User, to hold user account information; and UserOrder, to hold information about submitted orders. Looking back at the application “demo” class, you'll see the `@EntityScan` annotation, telling Spring that this package contains our data models
+
+* model.persistence.repositories - these contain a `JpaRepository` interface for each of our models. This allows Hibernate to connect them with our database so we can access data in the code, as well as define certain convenience methods. Looking at the application “demo” class, you’ll see the `@EnableJpaRepositories` annotation, telling Spring that this package contains our data repositories.
+
+* model.requests - this package contains the request models. The request models are transformed by Jackson from JSON to these models as requests are made. Note the `Json` annotations, telling Jackson to include and ignore certain fields of the requests. You can also see these annotations on the models themselves.
+
+* controllers - these contain the api endpoints for our app, 1 per model. Note they all have the `@RestController` annotation to allow Spring to understand that they are a part of a REST API
+
+In resources, you'll see the application configuration that sets up our database and Hibernate, It also contains a data.sql file with a couple of items to populate the database with. Spring runs this file every time the application starts
+
+Once the application is started, using a REST client, such as Postman, one can explore the APIs.
+
+Some examples are as below:
+To create a new user for example, you would send a POST request to:
+http://localhost:8080/api/user/create with an example body like 
+
+```
+{
+    "username": "test"
+}
+```
 
 
-## Getting Started
+and this would return
+```
+{
+    "id" 1,
+    "username": "test"
+}
+```
 
-### Dependencies
 
-* [IntelliJ IDEA Community Edition](https://www.jetbrains.com/idea/download) (or Ultimate) recommended 
-* [Java SE Development Kit 8+](https://www.oracle.com/technetwork/java/javase/downloads/index.html)
-* [Maven](https://maven.apache.org/download.cgi)
-* [MySQL Server 8](https://dev.mysql.com/downloads/mysql/) (or another standalone SQL instance)
-* [Postman](https://www.getpostman.com/downloads/)
+## Authentication and Authorization
+We needed to add proper authentication and authorization controls so users can only access their data, and that data can only be accessed in a secure way. I did this using a combination of usernames and passwords for authentication, as well as JSON Web Tokens (JWT) to handle the authorization.
 
-Part of this project involves configuring a Spring application to connect to an external data source. Before beginning this project, you must install a database to connect to. Here are [instructions for installing MySQL 8](https://dev.mysql.com/doc/refman/8.0/en/installing.html).
+As stated prior, I implemented a password based authentication scheme. To do this, I needed to store the users' passwords in a secure way. This was done with hashing, and it's this hash which is stored. Additionally when viewing their user information, the user's hash is not returned to them in the response, I also added some requirements and validation, as well as a confirm field in the request, to make sure they didn't make a typo. 
 
-You should install the Server and Connector/J, but it is also convenient to install the Documentation and Workbench.
+1. Added spring security dependencies: 
+   * Spring-boot-starter-security
+1. JWT does not ship as a part of spring security, so I had to add the 
+   * java-jwt dependency to your project. 
+1. Spring Boot ships with an automatically configured security module that must be disabled, as I implemented my own. This was done in the Application class.
+2. Create password for the user
+3. Once that was disabled, I implemented 4 classes:
+   * a subclass of `UsernamePasswordAuthenticationFilter` for taking the username and password from a login request and logging in. This, upon successful authentication, hands back a valid JWT in the `Authorization` header
+   * a subclass of `BasicAuthenticationFilter`. 
+   * an implementation of the `UserDetailsService` interface. This takes a username and returns a userdetails User instance with the user's username and hashed password.
+   *  a subclass of `WebSecurityConfigurerAdapter`. This attachs my user details service implementation to Spring's `AuthenticationManager`. It also handles session management and what endpoints are secured. For us, we manage the session so session management should be disabled. My filters were added to the authentication chain and every endpoint but 1 had security required. The one that should not is the one responsible for creating new users.
 
-Alternately, you may wish to run MySQL in a docker container, using [these instructions](https://hub.docker.com/_/mysql/).
 
-After installing the Server, you will need to create a user that your application will use to perform operations on the server. You should create a user that has all permissions on localhost using the sql command found [here](https://dev.mysql.com/doc/refman/8.0/en/creating-accounts.html).
+You can use Spring's default /login endpoint to login like so
 
-Another SQL database may be used if desired, but do not use the H2 in-memory database as your primary datasource.
+```
+POST /login 
+{
+    "username": "test",
+    "password": "somepassword"
+}
+```
 
-### Installation
-
-1. Clone or download this repository.
-2. Open IntelliJ IDEA.
-3. In IDEA, select `File` -> `Open` and navigate to the `critter` directory within this repository. Select that directory to open.
-4. The project should open in IDEA. In the project structure, navigate to `src/main/java/com.udacity.jdnd.course3.critter`. 
-5. Within that directory, click on CritterApplication.java and select `Run` -> `Debug CritterApplication`. 
-6. Open a browser and navigate to the url: [http://localhost:8082/test](http://localhost:8082/test)
-
-You should see the message "Critter Starter installed successfully" in your browser.
+and that will, if those are valid credentials, return a 200 OK with an Authorization header which looks like "Bearer <data>" this "Bearer <data>" is a JWT and must be sent as a Authorization header for all other rqeuests. If it's not present, endpoints return 401 Unauthorized. If it's present and valid, the endpoints function as normal.
 
 ## Testing
+I implemented unit tests demonstrating at least 93% class coverage, 91% method coverage, and 80% line coverage.
 
-Once you have completed the above installation, you should also be able to run the included unit tests to verify basic functionality as you complete it. To run unit tests:
+## Splunk
 
-1. Within your project in IDEA, Navigate to `src/test/java/com.udacity.jdnd.course3.critter`.
-2. Within that directory, click on `CritterFunctionalTest.java` and select `Run` -> `Run CritterFunctionalTest`.
+Some Splunk screen-shots:
 
-A window should open showing you the test executions. All 9 tests should fail and if you click on them they will show `java.lang.UnsupportedOperationeException` as the cause.
+![Unit testing log](img/splunk-unit-tests.jpg)
+!["Create user" search](./img/CreateUserSearch.jpg)
+![Email alert](./img/emailAlert.jpg)
+![Visualization](img/my-visualization.jpg)
 
-As you complete the objectives of this project, you will be able to verify progress by re-running these tests.
+## Jenkins
 
-### Tested Conditions
-Tests will pass under the following conditions:
+A Jenkins screen-shot:
 
-* `testCreateCustomer` - **UserController.saveCustomer** returns a saved customer matching the request
-* `testCreateEmployee` - **UserController.saveEmployee** returns a saved employee matching the request
-* `testAddPetsToCustomer` - **PetController.getPetsByOwner** returns a saved pet with the same id and name as the one saved with **UserController.savePet** for a given owner
-* `testFindPetsByOwner` - **PetController.getPetsByOwner** returns all pets saved for that owner.
-* `testFindOwnerByPet` - **UserController.getOwnerByPet** returns the saved owner used to create the pet.
-* `testChangeEmployeeAvailability` - **UserController.getEmployee** returns an employee with the same availability as set for that employee by **UserControler.setAvailability**
-* `testFindEmployeesByServiceAndTime` - **UserController.findEmployeesForService** returns all saved employees that have the requested availability and skills and none that do not
-* `testSchedulePetsForServiceWithEmployee` - **ScheduleController.createSchedule** returns a saved schedule matching the requested activities, pets, employees, and date
-* `testFindScheduleByEntities` - **ScheduleController.getScheduleForEmployee** returns all saved schedules containing that employee. **ScheduleController.getScheduleForPet** returns all saved schedules for that pet. **ScheduleController.getScheduleForCustomer** returns all saved schedules for any pets belonging to that owner.
-
-### Postman
-In addition to the included unit tests, a Postman collection has been provided. 
-
-1. Open Postman.
-2. Select the `Import` button.
-3. Import the file found in this repository under `src/main/resource/Udacity.postman_collection.json`
-4. Expand the Udacity folder in postman.
-
-Each entry in this collection contains information in its `Body` tab if necessary and all requests should function for a completed project. Depending on your key generation strategy, you may need to edit the specific ids in these requests for your particular project.
-
-## Built With
-
-* [Spring Boot](https://spring.io/projects/spring-boot) - Framework providing dependency injection, web framework, data binding, resource management, transaction management, and more.
-* [Google Guava](https://github.com/google/guava) - A set of core libraries used in this project for their collections utilities.
-* [H2 Database Engine](https://www.h2database.com/html/main.html) - An in-memory database used in this project to run unit tests.
-* [MySQL Connector/J](https://www.mysql.com/products/connector/) - JDBC Drivers to allow Java to connect to MySQL Server
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md]()
+![Jenkins project](img/jenkins.png)
